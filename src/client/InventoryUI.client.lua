@@ -2,7 +2,6 @@
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -145,38 +144,9 @@ end
 
 Remotes.Event("InventoryUpdated").OnClientEvent:Connect(rebuild)
 
--- Debug overlay + multiple keybinds.
-local debugLbl = Instance.new("TextLabel")
-debugLbl.Name = "KeyDebug"
-debugLbl.AnchorPoint = Vector2.new(0.5, 0)
-debugLbl.Position = UDim2.new(0.5, 0, 0, 6)
-debugLbl.Size = UDim2.new(0, 560, 0, 22)
-debugLbl.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-debugLbl.BackgroundTransparency = 0.3
-debugLbl.TextColor3 = Color3.fromRGB(255, 255, 120)
-debugLbl.Font = Enum.Font.Code
-debugLbl.TextSize = 14
-debugLbl.Text = "v2 key debug: press B, G, or Tab…"
-debugLbl.Parent = screen
-
 UserInputService.InputBegan:Connect(function(input, processed)
-	if input.UserInputType == Enum.UserInputType.Keyboard then
-		debugLbl.Text = string.format("v2 InputBegan key=%s processed=%s", input.KeyCode.Name, tostring(processed))
-	end
 	if processed then return end
-	local kc = input.KeyCode
-	if kc == Enum.KeyCode.B or kc == Enum.KeyCode.G or kc == Enum.KeyCode.Tab
-		or kc == Enum.KeyCode.I or kc == Enum.KeyCode.Semicolon then
-		debugLbl.Text = debugLbl.Text .. "  -> toggled!"
+	if input.KeyCode == Enum.KeyCode.B then
 		togglePanel()
 	end
 end)
-
-ContextActionService:BindActionAtPriority("ToggleInventory", function(_, state)
-	if state == Enum.UserInputState.Begin then
-		debugLbl.Text = "v2 CAS fired"
-		togglePanel()
-	end
-	return Enum.ContextActionResult.Pass
-end, false, Enum.ContextActionPriority.High.Value,
-	Enum.KeyCode.B, Enum.KeyCode.G, Enum.KeyCode.Tab, Enum.KeyCode.I, Enum.KeyCode.Semicolon)
