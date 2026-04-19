@@ -28,7 +28,7 @@ toggleBtn.BorderSizePixel = 0
 toggleBtn.Font = Enum.Font.GothamSemibold
 toggleBtn.TextSize = 14
 toggleBtn.TextColor3 = Color3.fromRGB(255, 240, 200)
-toggleBtn.Text = "Inventory (I)"
+toggleBtn.Text = "Inventory (B)"
 toggleBtn.Parent = screen
 
 local panel = Instance.new("Frame")
@@ -53,7 +53,7 @@ title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBlack
 title.TextSize = 18
 title.TextColor3 = Color3.fromRGB(255, 240, 200)
-title.Text = "Inventory  (I to close)"
+title.Text = "Inventory  (B to close)"
 title.Parent = panel
 
 local equippedFrame = Instance.new("Frame")
@@ -145,34 +145,16 @@ end
 
 Remotes.Event("InventoryUpdated").OnClientEvent:Connect(rebuild)
 
--- On-screen key diagnostic (top center, yellow).
-local debugLbl = Instance.new("TextLabel")
-debugLbl.Name = "KeyDebug"
-debugLbl.AnchorPoint = Vector2.new(0.5, 0)
-debugLbl.Position = UDim2.new(0.5, 0, 0, 6)
-debugLbl.Size = UDim2.new(0, 520, 0, 22)
-debugLbl.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-debugLbl.BackgroundTransparency = 0.3
-debugLbl.TextColor3 = Color3.fromRGB(255, 255, 120)
-debugLbl.Font = Enum.Font.Code
-debugLbl.TextSize = 14
-debugLbl.Text = "key debug: press any key…"
-debugLbl.Parent = screen
-
 UserInputService.InputBegan:Connect(function(input, processed)
-	if input.UserInputType == Enum.UserInputType.Keyboard then
-		debugLbl.Text = string.format("InputBegan key=%s processed=%s", input.KeyCode.Name, tostring(processed))
-	end
 	if processed then return end
-	if input.KeyCode == Enum.KeyCode.I then
+	if input.KeyCode == Enum.KeyCode.B or input.KeyCode == Enum.KeyCode.I then
 		togglePanel()
 	end
 end)
 
 ContextActionService:BindActionAtPriority("ToggleInventory", function(_, state)
 	if state == Enum.UserInputState.Begin then
-		debugLbl.Text = "CAS fired for KeyCode.I"
 		togglePanel()
 	end
 	return Enum.ContextActionResult.Pass
-end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.I)
+end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.B, Enum.KeyCode.I)
