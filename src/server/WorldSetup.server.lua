@@ -130,13 +130,8 @@ for _, z in ipairs(ZoneConfig.Zones) do zoneById[z.id] = z end
 
 local edges = {
 	{"freeport", "outskirts"},
-	{"outskirts", "highwayman_road"},
-	{"highwayman_road", "orc_hills"},
-	{"orc_hills", "bone_crypt"},
-	{"bone_crypt", "ember_caves"},
-	{"ember_caves", "dragons_reach"},
-	{"dragons_reach", "vexrothan_lair"},
 }
 for _, e in ipairs(edges) do
-	road(zoneById[e[1]].center, zoneById[e[2]].center)
+	local a, b = zoneById[e[1]], zoneById[e[2]]
+	if a and b then road(a.center, b.center) end
 end

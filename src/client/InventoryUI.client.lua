@@ -2,6 +2,7 @@
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -147,6 +148,16 @@ Remotes.Event("InventoryUpdated").OnClientEvent:Connect(rebuild)
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed then return end
 	if input.KeyCode == Enum.KeyCode.I then
+		print("[InventoryUI] I pressed via InputBegan")
 		togglePanel()
 	end
 end)
+
+-- Higher-priority binding via ContextActionService, in case another handler
+-- is sinking the I key.
+ContextActionService:BindAction("ToggleInventory", function(_, state)
+	if state == Enum.UserInputState.Begin then
+		print("[InventoryUI] I pressed via ContextActionService")
+		togglePanel()
+	end
+end, false, Enum.KeyCode.I)

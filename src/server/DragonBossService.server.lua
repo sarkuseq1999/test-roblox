@@ -23,6 +23,11 @@ local activeEncounter = nil
 local activationPad
 
 local lairZone = ZoneConfig.GetById("vexrothan_lair")
+if not lairZone then
+	-- Lair zone not configured — boss encounter disabled.
+	_G.DragonBossService = DragonBossService
+	return DragonBossService
+end
 local PAD_POS = lairZone.center + Vector3.new(0, 5, 80)
 local DRAGON_POS = lairZone.center + Vector3.new(0, 15, 0)
 
