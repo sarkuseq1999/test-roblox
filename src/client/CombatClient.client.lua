@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Remotes = require(Shared.Remotes)
+local MonsterConfig = require(Shared.Config.MonsterConfig)
 
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
@@ -23,13 +24,13 @@ local SLASH_ANIM_ID = "rbxassetid://522635514"
 local slashAnim = Instance.new("Animation")
 slashAnim.AnimationId = SLASH_ANIM_ID
 
--- Auto-attack toggle UI (bottom-left, next to the Inventory button).
 local pg = player:WaitForChild("PlayerGui")
 local screen = Instance.new("ScreenGui")
 screen.Name = "CombatHUD"
 screen.ResetOnSpawn = false
 screen.Parent = pg
 
+-- Auto-attack toggle UI (bottom-left, next to the Inventory button).
 local autoLbl = Instance.new("TextLabel")
 autoLbl.Name = "AutoAttackIndicator"
 autoLbl.AnchorPoint = Vector2.new(0, 1)
@@ -43,8 +44,92 @@ autoLbl.TextColor3 = Color3.fromRGB(180, 180, 180)
 autoLbl.Text = "Auto-attack: OFF (Q)"
 autoLbl.Parent = screen
 
+-- Target panel directly below the character HUD panel.
+local targetPanel = Instance.new("Frame")
+targetPanel.Name = "TargetPanel"
+targetPanel.Size = UDim2.new(0, 260, 0, 62)
+targetPanel.Position = UDim2.new(0, 12, 0, 200)
+targetPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+targetPanel.BackgroundTransparency = 0.25
+targetPanel.BorderSizePixel = 0
+targetPanel.Visible = false
+targetPanel.Parent = screen
+
+local targetTitle = Instance.new("TextLabel")
+targetTitle.Size = UDim2.new(1, -20, 0, 20)
+targetTitle.Position = UDim2.new(0, 10, 0, 4)
+targetTitle.BackgroundTransparency = 1
+targetTitle.Font = Enum.Font.GothamBold
+targetTitle.TextSize = 14
+targetTitle.TextXAlignment = Enum.TextXAlignment.Left
+targetTitle.TextColor3 = Color3.fromRGB(255, 240, 200)
+targetTitle.Text = "Target"
+targetTitle.Parent = targetPanel
+
+local targetHpLbl = Instance.new("TextLabel")
+targetHpLbl.Size = UDim2.new(1, -20, 0, 16)
+targetHpLbl.Position = UDim2.new(0, 10, 0, 24)
+targetHpLbl.BackgroundTransparency = 1
+targetHpLbl.Font = Enum.Font.Gotham
+targetHpLbl.TextSize = 13
+targetHpLbl.TextXAlignment = Enum.TextXAlignment.Left
+targetHpLbl.TextColor3 = Color3.fromRGB(230, 220, 200)
+targetHpLbl.Text = "HP: —/—"
+targetHpLbl.Parent = targetPanel
+
+local targetBarBg = Instance.new("Frame")
+targetBarBg.Position = UDim2.new(0, 10, 0, 44)
+targetBarBg.Size = UDim2.new(1, -20, 0, 12)
+targetBarBg.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+targetBarBg.BorderSizePixel = 0
+targetBarBg.Parent = targetPanel
+local targetBarFill = Instance.new("Frame")
+targetBarFill.Size = UDim2.new(1, 0, 1, 0)
+targetBarFill.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
+targetBarFill.BorderSizePixel = 0
+targetBarFill.Parent = targetBarBg
+
 local autoAttackEnabled = false
 local lastAttack = 0
+local currentTarget = nil
+local targetHealthConn, targetDiedConn, targetRemovedConn
+
+local function clearTarget()
+	if targetHealthConn then targetHealthConn:Disconnect() targetHealthConn = nil end
+	if targetDiedConn then targetDiedConn:Disconnect() targetDiedConn = nil end
+	if targetRemovedConn then targetRemovedConn:Disconnect() targetRemovedConn = nil end
+	currentTarget = nil
+	targetPanel.Visible = false
+end
+
+local function refreshTargetUI()
+	if not currentTarget then targetPanel.Visible = false return end
+	local hum = currentTarget:FindFirstChildOfClass("Humanoid")
+	if not hum then clearTarget() return end
+	local id = currentTarget:GetAttribute("MonsterId")
+	local def = id and MonsterConfig.Get(id)
+	local displayName = def and def.displayName or currentTarget.Name
+	local level = currentTarget:GetAttribute("Level") or (def and def.level) or 0
+	targetTitle.Text = string.format("[%d] %s", level, displayName)
+	targetHpLbl.Text = string.format("HP: %d/%d", math.floor(hum.Health), math.floor(hum.MaxHealth))
+	targetBarFill.Size = UDim2.new(math.clamp(hum.Health / math.max(1, hum.MaxHealth), 0, 1), 0, 1, 0)
+	targetPanel.Visible = true
+end
+
+local function setTarget(monster)
+	if monster == currentTarget then return end
+	clearTarget()
+	if not monster then return end
+	local hum = monster:FindFirstChildOfClass("Humanoid")
+	if not hum or hum.Health <= 0 then return end
+	currentTarget = monster
+	targetHealthConn = hum.HealthChanged:Connect(refreshTargetUI)
+	targetDiedConn = hum.Died:Connect(clearTarget)
+	targetRemovedConn = monster.AncestryChanged:Connect(function(_, parent)
+		if not parent then clearTarget() end
+	end)
+	refreshTargetUI()
+end
 
 local function updateUI()
 	if autoAttackEnabled then
@@ -110,6 +195,13 @@ local function nearestMonster(fromPos, radius)
 	return best, bestDist
 end
 
+local function targetStillValid(fromPos)
+	if not currentTarget or not currentTarget.Parent or not currentTarget.PrimaryPart then return false end
+	local hum = currentTarget:FindFirstChildOfClass("Humanoid")
+	if not hum or hum.Health <= 0 then return false end
+	return (currentTarget.PrimaryPart.Position - fromPos).Magnitude <= SEARCH_RADIUS
+end
+
 local function tryAttack(target)
 	if not target or not target.PrimaryPart then return false end
 	local char = player.Character
@@ -137,21 +229,26 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		local hit = mouse.Target
 		local monster = hit and findMonsterAncestor(hit)
 		if monster then
+			setTarget(monster)
 			tryAttack(monster)
 		end
 	end
 end)
 
--- Auto-attack heartbeat: find nearest living monster in range, attack.
+-- Auto-attack heartbeat: stick with the current target until it dies or
+-- leaves the search radius, otherwise pick the nearest valid one.
 RunService.Heartbeat:Connect(function()
 	if not autoAttackEnabled then return end
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
+	if not targetStillValid(hrp.Position) then
+		local nm = nearestMonster(hrp.Position, SEARCH_RADIUS)
+		if nm then setTarget(nm) end
+	end
 	local now = os.clock()
 	if now - lastAttack < ATTACK_COOLDOWN then return end
-	local target = nearestMonster(hrp.Position, SEARCH_RADIUS)
-	if target then tryAttack(target) end
+	if currentTarget then tryAttack(currentTarget) end
 end)
 
 updateUI()
