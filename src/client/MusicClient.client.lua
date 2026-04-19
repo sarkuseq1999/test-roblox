@@ -1,6 +1,9 @@
--- Ambient Freeport music that fades in when the player is inside the city
--- and out when they leave. Swap the FREEPORT_MUSIC id below for your own
--- uploaded track; this is just a placeholder.
+-- Ambient Freeport music. Fades in when the player is inside the city,
+-- out when they leave.
+--
+-- Setup: add a Sound to SoundService in Studio named "FreeportMusic"
+-- (e.g. via the Toolbox → Audio tab → Insert). The script will pick it up.
+-- Leaving the script-side SoundId empty means audio privacy can't block it.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -11,19 +14,50 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local ZoneConfig = require(Shared.Config.ZoneConfig)
 
 local player = Players.LocalPlayer
-
--- Placeholder medieval/fantasy ambient id. If this id is unavailable in your
--- game, upload an audio asset and paste its rbxassetid here.
-local FREEPORT_MUSIC = "rbxassetid://9046862972"
 local TARGET_VOLUME = 0.4
 
-local music = Instance.new("Sound")
-music.Name = "FreeportMusic"
-music.SoundId = FREEPORT_MUSIC
-music.Looped = true
-music.Volume = 0
-music.Parent = SoundService
-pcall(function() music:Play() end)
+local function findOrCreateMusic()
+	local existing = SoundService:FindFirstChild("FreeportMusic")
+	if existing and existing:IsA("Sound") and existing.SoundId ~= "" then
+		existing.Looped = true
+		return existing, true
+	end
+	-- Fallback placeholder: script sets no SoundId, user must add one.
+	local s = Instance.new("Sound")
+	s.Name = "FreeportMusic"
+	s.Looped = true
+	s.Volume = 0
+	s.Parent = SoundService
+	return s, false
+end
+
+local music, ready = findOrCreateMusic()
+if ready then
+	pcall(function() music:Play() end)
+end
+
+-- If the sound isn't set up, drop a one-time hint in the corner.
+if not ready then
+	local pg = player:WaitForChild("PlayerGui")
+	local screen = Instance.new("ScreenGui")
+	screen.Name = "MusicHint"
+	screen.ResetOnSpawn = false
+	screen.Parent = pg
+	local lbl = Instance.new("TextLabel")
+	lbl.AnchorPoint = Vector2.new(1, 1)
+	lbl.Position = UDim2.new(1, -16, 1, -60)
+	lbl.Size = UDim2.new(0, 340, 0, 44)
+	lbl.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+	lbl.BackgroundTransparency = 0.1
+	lbl.BorderSizePixel = 0
+	lbl.TextWrapped = true
+	lbl.Font = Enum.Font.Gotham
+	lbl.TextSize = 12
+	lbl.TextColor3 = Color3.fromRGB(255, 230, 180)
+	lbl.Text = "No music set.  Add a Sound named 'FreeportMusic' to SoundService (Toolbox → Audio)."
+	lbl.Parent = screen
+	task.delay(15, function() screen:Destroy() end)
+end
 
 local freeport = ZoneConfig.GetById("freeport")
 
@@ -34,10 +68,14 @@ local function inFreeport(pos)
 		and math.abs(pos.Z - c.Z) < s.Z / 2
 end
 
-RunService.Heartbeat:Connect(function()
+RunService.Heartbeat:Connect(function(dt)
+	if not ready then return end
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 	local target = inFreeport(hrp.Position) and TARGET_VOLUME or 0
-	music.Volume = music.Volume + (target - music.Volume) * 0.04
+	music.Volume = music.Volume + (target - music.Volume) * math.min(1, dt * 2)
+	if not music.IsPlaying and target > 0 then
+		pcall(function() music:Play() end)
+	end
 end)
