@@ -35,16 +35,18 @@ local function makeZonePad(zone, parent)
 
 	local sign = Instance.new("Part")
 	sign.Name = zone.id .. "_sign"
-	sign.Size = Vector3.new(8, 12, 1)
-	sign.Position = zone.center + Vector3.new(0, 6, -zone.size.Z / 2 + 4)
+	sign.Size = Vector3.new(1, 6, 1)
+	-- Off to the east edge of the road so it doesn't block movement.
+	sign.Position = zone.center + Vector3.new(14, 3, -zone.size.Z / 2 + 4)
 	sign.Anchored = true
 	sign.Color = Color3.fromRGB(80, 60, 40)
+	sign.Material = Enum.Material.Wood
 	sign.Parent = parent
 
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.new(0, 320, 0, 80)
-	gui.StudsOffset = Vector3.new(0, 8, 0)
-	gui.AlwaysOnTop = true
+	gui.Size = UDim2.new(0, 260, 0, 70)
+	gui.StudsOffset = Vector3.new(0, 4, 0)
+	gui.MaxDistance = 250
 	gui.Parent = sign
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)

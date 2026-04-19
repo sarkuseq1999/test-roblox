@@ -70,7 +70,7 @@ local function buildRig(monsterId, position)
 	local nameTag = Instance.new("BillboardGui")
 	nameTag.Size = UDim2.new(0, 200, 0, 50)
 	nameTag.StudsOffset = Vector3.new(0, 2.5 * scale, 0)
-	nameTag.AlwaysOnTop = true
+	nameTag.MaxDistance = def.isBoss and 400 or 120
 	nameTag.Parent = head
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
