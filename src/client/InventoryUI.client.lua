@@ -16,6 +16,20 @@ screen.Name = "InventoryUI"
 screen.ResetOnSpawn = false
 screen.Parent = pg
 
+-- Always-visible toggle button in the bottom-left.
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "InventoryToggle"
+toggleBtn.AnchorPoint = Vector2.new(0, 1)
+toggleBtn.Position = UDim2.new(0, 12, 1, -12)
+toggleBtn.Size = UDim2.new(0, 140, 0, 34)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+toggleBtn.BorderSizePixel = 0
+toggleBtn.Font = Enum.Font.GothamSemibold
+toggleBtn.TextSize = 14
+toggleBtn.TextColor3 = Color3.fromRGB(255, 240, 200)
+toggleBtn.Text = "Inventory (I)"
+toggleBtn.Parent = screen
+
 local panel = Instance.new("Frame")
 panel.Name = "Panel"
 panel.AnchorPoint = Vector2.new(1, 0.5)
@@ -26,6 +40,11 @@ panel.BackgroundTransparency = 0.15
 panel.BorderSizePixel = 0
 panel.Visible = false
 panel.Parent = screen
+
+local function togglePanel()
+	panel.Visible = not panel.Visible
+end
+toggleBtn.MouseButton1Click:Connect(togglePanel)
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 28)
@@ -128,6 +147,6 @@ Remotes.Event("InventoryUpdated").OnClientEvent:Connect(rebuild)
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed then return end
 	if input.KeyCode == Enum.KeyCode.I then
-		panel.Visible = not panel.Visible
+		togglePanel()
 	end
 end)
