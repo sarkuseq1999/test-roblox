@@ -145,19 +145,34 @@ end
 
 Remotes.Event("InventoryUpdated").OnClientEvent:Connect(rebuild)
 
+-- On-screen diagnostic so we can see every key press without opening Output.
+local debugLbl = Instance.new("TextLabel")
+debugLbl.Name = "KeyDebug"
+debugLbl.AnchorPoint = Vector2.new(0.5, 0)
+debugLbl.Position = UDim2.new(0.5, 0, 0, 6)
+debugLbl.Size = UDim2.new(0, 500, 0, 22)
+debugLbl.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+debugLbl.BackgroundTransparency = 0.3
+debugLbl.TextColor3 = Color3.fromRGB(255, 255, 120)
+debugLbl.Font = Enum.Font.Code
+debugLbl.TextSize = 14
+debugLbl.Text = "key debug: press any key…"
+debugLbl.Parent = screen
+
 UserInputService.InputBegan:Connect(function(input, processed)
+	if input.UserInputType == Enum.UserInputType.Keyboard then
+		debugLbl.Text = string.format("key=%s  processed=%s", input.KeyCode.Name, tostring(processed))
+	end
 	if processed then return end
 	if input.KeyCode == Enum.KeyCode.I then
-		print("[InventoryUI] I pressed via InputBegan")
 		togglePanel()
 	end
 end)
 
--- Higher-priority binding via ContextActionService, in case another handler
--- is sinking the I key.
-ContextActionService:BindAction("ToggleInventory", function(_, state)
+ContextActionService:BindActionAtPriority("ToggleInventory", function(_, state)
 	if state == Enum.UserInputState.Begin then
-		print("[InventoryUI] I pressed via ContextActionService")
+		debugLbl.Text = "key=I  (via ContextActionService)"
 		togglePanel()
 	end
-end, false, Enum.KeyCode.I)
+	return Enum.ContextActionResult.Pass
+end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.I)
